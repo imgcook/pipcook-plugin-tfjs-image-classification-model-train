@@ -20,9 +20,14 @@ const ModelTrain: ModelTrainType = async (data: ImageDataset, model: UniModel, a
   const { trainLoader, validationLoader } = data;
 
   const count = await trainLoader.len();
-  const valCount = await validationLoader.len();
+
+  let valBatchesPerEpoch: number;
+  if (validationLoader) {
+    const valCount = await validationLoader.len();
+    valBatchesPerEpoch = Math.floor(valCount / batchSize);
+  }
+
   const batchesPerEpoch = Math.floor(count / batchSize);
-  const valBatchesPerEpoch = Math.floor(valCount / batchSize);
   const trainModel = model.model;
 
   for (let i = 0; i < epochs; i++) {
@@ -36,19 +41,21 @@ const ModelTrain: ModelTrainType = async (data: ImageDataset, model: UniModel, a
         console.log(`Iteration ${j}/${batchesPerEpoch} result --- loss: ${trainRes[0]} accuracy: ${trainRes[1]}`);
       }
     }
-    let loss = 0;
-    let accuracy = 0;
-    for (let j = 0; j < valBatchesPerEpoch; j++) {
-      const dataBatch = await validationLoader.nextBatch(batchSize);
-      const xs = tf.tidy(() => tf.stack(dataBatch.map((ele) => ele.data)));
-      const ys = tf.tidy(() => tf.stack(dataBatch.map((ele) => ele.label)));
-      const evaluateRes = await trainModel.evaluate(xs, ys);
-      loss += Number(evaluateRes[0].dataSync());
-      accuracy += Number(evaluateRes[1].dataSync());
+    if (validationLoader) {
+      let loss = 0;
+      let accuracy = 0;
+      for (let j = 0; j < valBatchesPerEpoch; j++) {
+        const dataBatch = await validationLoader.nextBatch(batchSize);
+        const xs = tf.tidy(() => tf.stack(dataBatch.map((ele) => ele.data)));
+        const ys = tf.tidy(() => tf.stack(dataBatch.map((ele) => ele.label)));
+        const evaluateRes = await trainModel.evaluate(xs, ys);
+        loss += Number(evaluateRes[0].dataSync());
+        accuracy += Number(evaluateRes[1].dataSync());
+      }
+      loss /= valBatchesPerEpoch;
+      accuracy /= valBatchesPerEpoch;
+      console.log(`Validation Result ${i}/${epochs} result --- loss: ${loss} accuracy: ${accuracy}`);
     }
-    loss /= valBatchesPerEpoch;
-    accuracy /= valBatchesPerEpoch;
-    console.log(`Validation Result ${i}/${epochs} result --- loss: ${loss} accuracy: ${accuracy}`);
   }
 
   await trainModel.save(`file://${modelPath}`);

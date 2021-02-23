@@ -1,6 +1,6 @@
 import { ImageDataset, ModelTrainType, UniModel, ModelTrainArgsType } from '@pipcook/pipcook-core';
 
-import * as tf from '@tensorflow/tfjs-node-gpu';
+import * as tf from '@tensorflow/tfjs-node';
 
 /**
  * this is plugin used to train tfjs model with pascal voc data format for image classification problem.

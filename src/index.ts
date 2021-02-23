@@ -37,6 +37,8 @@ const ModelTrain: ModelTrainType = async (data: ImageDataset, model: UniModel, a
       const xs = tf.tidy(() => tf.stack(dataBatch.map((ele) => ele.data)));
       const ys = tf.tidy(() => tf.stack(dataBatch.map((ele) => ele.label)));
       const trainRes = await trainModel.trainOnBatch(xs, ys);
+      xs.dispose();
+      ys.dispose();
       if (j % Math.floor(batchesPerEpoch / 10) === 0) {
         console.log(`Iteration ${j}/${batchesPerEpoch} result --- loss: ${trainRes[0]} accuracy: ${trainRes[1]}`);
       }
@@ -49,6 +51,8 @@ const ModelTrain: ModelTrainType = async (data: ImageDataset, model: UniModel, a
         const xs = tf.tidy(() => tf.stack(dataBatch.map((ele) => ele.data)));
         const ys = tf.tidy(() => tf.stack(dataBatch.map((ele) => ele.label)));
         const evaluateRes = await trainModel.evaluate(xs, ys);
+        xs.dispose();
+        ys.dispose();
         loss += Number(evaluateRes[0].dataSync());
         accuracy += Number(evaluateRes[1].dataSync());
       }
